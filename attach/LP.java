@@ -5,42 +5,21 @@ import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
+import org.apache.commons.math3.optim.MaxIter;
+import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.optim.linear.*;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import scpsolver.lpsolver.LinearProgramSolver;
+import scpsolver.lpsolver.SolverFactory;
 import scpsolver.problems.LPSolution;
 import scpsolver.problems.LPWizard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
 public class LP {
-    static private class Advertisement {
-        private String adgroup_id;
-        private Double pcvr;
-        private Double pctr;
-        private Double ppb;
-        private Double ppbPower;
-        private Double avgPcvr;
-        private Double bid;
-        private Double ocpcPrice;
-        private Double oldScore;
-        private Double newScore;
-        private Double upper;
-        private Double lower;
-        public Advertisement() {
-            this.adgroup_id = "";
-            this.pcvr = 0.0;
-            this.pctr = 0.0;
-            this.ppb = 0.0;
-            this.ppbPower = 0.0;
-            this.avgPcvr = 0.0;
-            this.bid = 0.0;
-            this.ocpcPrice = 0.0;
-            this.oldScore = 0.0;
-            this.newScore = 0.0;
-            this.upper = 0.0;
-            this.lower = 0.0;
-        }
-    }
     public static void main(String[] args) throws java.lang.Exception{
         //parameters
         int N = 12;
@@ -104,6 +83,34 @@ public class LP {
             h[2*N+N*(N-1)/2+i] = 0.;
         }
 
+        LinearObjectiveFunction obj = new LinearObjectiveFunction(co, 0);
+        Collection<LinearConstraint> cnsts = new ArrayList<LinearConstraint>();
+        for(int i = 0;i < 2*N+N*(N-1);++i){
+            cnsts.add(new LinearConstraint(G[i], Relationship.LEQ, h[i]));
+        }
+
+        SimplexSolver solver = new SimplexSolver();
+        long startTime = System.currentTimeMillis();
+        PointValuePair optSolution = solver.optimize(obj, new
+                        LinearConstraintSet(cnsts),
+                GoalType.MINIMIZE, new
+                        NonNegativeConstraint(false),
+                new MaxIter(10000));
+        long endTime = System.currentTimeMillis();
+
+
+        double[] solution;
+        solution = optSolution.getPoint();
+        System.out.println("=====");
+        for(int i = 0;i < solution.length;++i){
+            System.out.println(solution[i]);
+        }
+        System.out.println("=====");
+        System.out.println(optSolution.getValue());
+        System.out.println("=====");
+        System.out.println("程序运行时间：" + (endTime - startTime) + "ms");    //输出程序运行时间
+        System.out.println("=====");
+
 //        LinearMultivariateRealFunction objectiveFunction = new LinearMultivariateRealFunction(co, 0);
 //        ConvexMultivariateRealFunction[] inequalities = new ConvexMultivariateRealFunction[2*N+N*(N-1)];
 //        for(int i = 0;i < 2*N+N*(N-1);++i){
@@ -126,56 +133,56 @@ public class LP {
 //
 //        double[] sol = opt.getOptimizationResponse().getSolution();
 //        System.out.println(sol.length);
-        LPWizard lpw = new LPWizard();
-        for(int i = 0;i < N+N*(N-1)/2;++i){
-            String var = "x" + Integer.toString(i);
-            lpw.plus(var, co[i]);
-        }
-
-        for(int i = 0;i < 2*N;++i){
-            String cnst = "c" + Integer.toString(i);
-            String var = "x" + Integer.toString(i/2);
-            if(i % 2 == 0){
-                lpw.addConstraint(cnst, alpha[i/2], "<=").plus(var, 1.);
-            }
-            else{
-                lpw.addConstraint(cnst, beta[i/2], ">=").plus(var, 1.);
-            }
-        }
-
-        cnt = 0;
-        for(int i = 0;i < N;++i){
-            for(int j = i+1;j < N;++j){
-                double y = A[i] > A[j] ? 1. : -1.;
-                String cnst = "c" + Integer.toString(2*N+cnt);
-                String var1 = "x" + Integer.toString(N+cnt);
-                String var2 = "x" + Integer.toString(i);
-                String var3 = "x" + Integer.toString(j);
-                lpw.addConstraint(cnst, 1., "<=").plus(var1, 1.).plus(var2, y*A[i]).plus(var3, -y*A[j]);
-                cnt++;
-            }
-        }
-
-        cnt = 0;
-        for(int i = 0;i < N;++i){
-            for(int j = i+1;j < N;++j){
-                String cnst = "c" + Integer.toString(2*N+N*(N-1)/2+cnt);
-                String var = "x" + Integer.toString(N+cnt);
-                lpw.addConstraint(cnst, 0., "<=").plus(var, 1.);
-                cnt++;
-            }
-        }
-
-        lpw.setMinProblem(true);
-        long startTime = System.currentTimeMillis();
-        LPSolution sol = lpw.solve();
-        long endTime = System.currentTimeMillis();
-        double obj = sol.getObjectiveValue();
-        System.out.println("=====");
-        System.out.println("程序运行时间：" + (endTime - startTime) + "ms");    //输出程序运行时间
-        System.out.println("=====");
-        System.out.println(obj);
-        System.out.println("=====");
+//        LPWizard lpw = new LPWizard();
+//        for(int i = 0;i < N+N*(N-1)/2;++i){
+//            String var = "x" + Integer.toString(i);
+//            lpw.plus(var, co[i]);
+//        }
+//
+//        for(int i = 0;i < 2*N;++i){
+//            String cnst = "c" + Integer.toString(i);
+//            String var = "x" + Integer.toString(i/2);
+//            if(i % 2 == 0){
+//                lpw.addConstraint(cnst, alpha[i/2], "<=").plus(var, 1.);
+//            }
+//            else{
+//                lpw.addConstraint(cnst, beta[i/2], ">=").plus(var, 1.);
+//            }
+//        }
+//
+//        cnt = 0;
+//        for(int i = 0;i < N;++i){
+//            for(int j = i+1;j < N;++j){
+//                double y = A[i] > A[j] ? 1. : -1.;
+//                String cnst = "c" + Integer.toString(2*N+cnt);
+//                String var1 = "x" + Integer.toString(N+cnt);
+//                String var2 = "x" + Integer.toString(i);
+//                String var3 = "x" + Integer.toString(j);
+//                lpw.addConstraint(cnst, 1., "<=").plus(var1, 1.).plus(var2, y*A[i]).plus(var3, -y*A[j]);
+//                cnt++;
+//            }
+//        }
+//
+//        cnt = 0;
+//        for(int i = 0;i < N;++i){
+//            for(int j = i+1;j < N;++j){
+//                String cnst = "c" + Integer.toString(2*N+N*(N-1)/2+cnt);
+//                String var = "x" + Integer.toString(N+cnt);
+//                lpw.addConstraint(cnst, 0., "<=").plus(var, 1.);
+//                cnt++;
+//            }
+//        }
+//
+//        lpw.setMinProblem(true);
+//        long startTime = System.currentTimeMillis();
+//        LPSolution sol = lpw.solve();
+//        long endTime = System.currentTimeMillis();
+//        double object = sol.getObjectiveValue();
+//        System.out.println("=====");
+//        System.out.println("程序运行时间：" + (endTime - startTime) + "ms");    //输出程序运行时间
+//        System.out.println("=====");
+//        System.out.println(object);
+//        System.out.println("=====");
 //        for(int i = 0;i < N+N*(N-1)/2;++i){
 //            String var = "x" + Integer.toString(i);
 //            System.out.println(sol.getDouble(var));
