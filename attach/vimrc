@@ -152,5 +152,6 @@ Plugin 'sudo.vim'
 Plugin 'neocomplcache'
 Plugin 'surround.vim'
 Plugin 'JavaScript-syntax'
+Plugin 'a.vim'
 
 call vundle#end()
